@@ -39,10 +39,10 @@
     75%{transform:translate(12px,-4px) rotate(4deg)} 88%{transform:translate(-6px,2px)}
     100%{transform:translate(0,0)} }
   #ball-wrap { width:min(90vw,380px); }
-  #window { position:absolute; left:50%; top:48%; width:42%; aspect-ratio:1; transform:translate(-50%,-50%); }
+  #window { position:absolute; left:50%; top:48%; width:52%; aspect-ratio:1; transform:translate(-50%,-50%); }
   .win-svg { position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated; }
   #win-rim { pointer-events:none; }
-  #tri-box { position:absolute; inset:15%; display:flex; align-items:center; justify-content:center;
+  #tri-box { position:absolute; inset:14%; display:flex; align-items:center; justify-content:center;
     overflow:hidden; border-radius:50%; clip-path:circle(50%); }
   #tri { position:relative; width:68%; aspect-ratio:1/0.9; opacity:0; }
   #tri.on { opacity:1; }
@@ -53,10 +53,10 @@
     clip-path:polygon(0 0,100% 0,50% 100%); }
   #tri-shape::after { content:""; position:absolute; inset:0; background:#2b34ff;
     clip-path:polygon(7% 5%,93% 5%,50% 90%); }
-  #answer { position:absolute; left:50%; top:32%; width:70%; height:42%; transform:translateX(-50%);
+  #answer { position:absolute; left:50%; top:12%; width:54%; height:44%; transform:translateX(-50%);
     display:flex; align-items:center; justify-content:center; text-align:center;
     font-family:'Marcellus', Optima, Candara, 'Gill Sans', sans-serif; font-variant:small-caps;
-    color:#c9d3ff; font-size:12px; line-height:1.15; word-break:break-word; overflow:hidden; }
+    color:#c9d3ff; font-size:12px; line-height:1.15; word-break:break-word; overflow:hidden; text-wrap:balance; }
   #hint { margin-top:24px; color:var(--dim); }
   @media (prefers-reduced-motion: reduce) { #ball-wrap.shake { animation:none; } }
 </style>
@@ -149,11 +149,11 @@
 
   function shareUrl() {
     const q = choices.map(c => 'c=' + encodeURIComponent(c)).join('&');
-    return location.origin + location.pathname + '?' + q;
+    return location.href.split(/[?#]/)[0] + '?' + q;
   }
   function startPlay(vals) {
     choices = vals;
-    history.replaceState(null, '', shareUrl());
+    try { history.replaceState(null, '', shareUrl()); } catch (e) { /* e.g. file:// */ }
     $('setup').classList.add('hidden');
     $('play').classList.remove('hidden');
     hideTri();
@@ -227,7 +227,7 @@
       a.style.opacity = p < 0.75 ? 0 : Math.min(1, (p - 0.75) / 0.2).toFixed(2);
       if (t >= steps) {
         clearInterval(spin);
-        tri.style.transform = `rotate(${randInt(25) - 12}deg) scale(1)`;
+        tri.style.transform = `rotate(${randInt(11) - 5}deg) scale(1)`;
         tri.style.opacity = 1; tri.style.filter = 'none'; a.style.opacity = 1;
         tri.classList.add('bob');
         onDone();
