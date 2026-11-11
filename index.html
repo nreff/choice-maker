@@ -7,62 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Press+Start+2P&display=swap" rel="stylesheet">
-<style>
-  :root { --bg:#1a1c2c; --fg:#f4f4f4; --accent:#ffcd75; --blue:#3b5dc9; --dim:#566c86; }
-  * { box-sizing: border-box; }
-  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--fg);
-    font-family:'Press Start 2P', ui-monospace, monospace; font-size:12px; line-height:1.8; }
-  main { max-width:480px; margin:0 auto; padding:24px 16px 48px; text-align:center; }
-  h1 { font-size:18px; color:var(--accent); margin:8px 0 24px; }
-  .hidden { display:none !important; }
-  label { display:block; margin:16px 0 8px; }
-  input { font:inherit; color:var(--fg); background:#000; border:4px solid var(--fg);
-    padding:10px; width:100%; border-radius:0; outline:none; }
-  input:focus { border-color:var(--accent); }
-  input[type=number] { width:100px; text-align:center; }
-  #fields { display:grid; gap:10px; margin-top:16px; text-align:left; }
-  button { font:inherit; color:#000; background:var(--accent); border:4px solid var(--fg);
-    padding:12px 20px; margin-top:24px; cursor:pointer; border-radius:0;
-    box-shadow:4px 4px 0 #000; }
-  button:active { transform:translate(4px,4px); box-shadow:none; }
-  button.ghost { background:transparent; color:var(--fg); }
-  .err { color:#ef7d57; min-height:1.8em; margin-top:12px; }
-
-  #ball-wrap { position:relative; width:min(80vw,320px); aspect-ratio:1; margin:8px auto 0;
-    cursor:pointer; touch-action:manipulation; user-select:none; }
-  #ball { width:100%; height:100%; display:block; image-rendering:pixelated; }
-  #ball-wrap.shake { animation:shake .6s steps(2,end) 1; }
-  @keyframes shake {
-    0%{transform:translate(0,0)} 12%{transform:translate(-16px,6px) rotate(-6deg)}
-    25%{transform:translate(16px,-6px) rotate(6deg)} 38%{transform:translate(-16px,-6px) rotate(-6deg)}
-    50%{transform:translate(16px,6px) rotate(6deg)} 62%{transform:translate(-12px,4px) rotate(-4deg)}
-    75%{transform:translate(12px,-4px) rotate(4deg)} 88%{transform:translate(-6px,2px)}
-    100%{transform:translate(0,0)} }
-  #ball-wrap { width:min(90vw,380px); }
-  #window { position:absolute; left:50%; top:48%; width:52%; aspect-ratio:1; transform:translate(-50%,-50%); }
-  .win-svg { position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated; }
-  #win-rim { pointer-events:none; }
-  #tri-box { position:absolute; inset:14%; display:flex; align-items:center; justify-content:center;
-    overflow:hidden; border-radius:50%; clip-path:circle(50%); }
-  /* The triangle's centroid sits at the window's centre and it rotates about that point,
-     so its corners never swing farther than ~0.27 of the window width -- always under the glass. */
-  #tri { position:absolute; left:50%; top:50%; width:62%; margin-left:-31%; margin-top:-18.6%;
-    aspect-ratio:1/0.9; transform-origin:50% 33.33%; opacity:0; }
-  #tri.on { opacity:1; }
-  #tri.bob { animation:bob 1.6s steps(4,end) infinite alternate; }
-  @keyframes bob { from{translate:0 -2px} to{translate:0 2px} }
-  /* inverted triangle, like the real thing */
-  #tri-shape { position:absolute; inset:0; background:#1c20d8;
-    clip-path:polygon(0 0,100% 0,50% 100%); }
-  #tri-shape::after { content:""; position:absolute; inset:0; background:#2b34ff;
-    clip-path:polygon(7% 5%,93% 5%,50% 90%); }
-  #answer { position:absolute; left:50%; top:12%; width:54%; height:44%; transform:translateX(-50%);
-    display:flex; align-items:center; justify-content:center; text-align:center;
-    font-family:'Marcellus', Optima, Candara, 'Gill Sans', sans-serif; font-variant:small-caps;
-    color:#c9d3ff; font-size:12px; line-height:1.15; word-break:break-word; overflow:hidden; text-wrap:balance; }
-  #hint { margin-top:24px; color:var(--dim); }
-  @media (prefers-reduced-motion: reduce) { #ball-wrap.shake { animation:none; } }
-</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/games.css">
 </head>
 <body>
 <main>
@@ -77,198 +23,20 @@
   </section>
 
   <section id="play" class="hidden">
-    <div id="ball-wrap" role="button" tabindex="0" aria-label="Shake the eight ball">
-      <svg id="ball" viewBox="0 0 32 32" shape-rendering="crispEdges"></svg>
-      <div id="window"><svg id="win-back" class="win-svg" viewBox="0 0 20 20" shape-rendering="crispEdges"></svg><div id="tri-box"><div id="tri"><div id="tri-shape"></div><div id="answer"></div></div></div><svg id="win-rim" class="win-svg" viewBox="0 0 20 20" shape-rendering="crispEdges"></svg></div>
-    </div>
-    <div id="hint">TAP THE BALL TO SHAKE</div>
-    <button id="shake">SHAKE!</button><br>
+    <div id="picker" role="group" aria-label="Choose how to decide"></div>
+    <div id="stage"></div>
+    <div id="hint"></div>
+    <button id="action">GO!</button><br>
     <button id="share" class="ghost">COPY SHARE LINK</button><br>
     <button id="back" class="ghost">&lt; EDIT</button>
   </section>
 </main>
 
-<script>
-(() => {
-  const $ = id => document.getElementById(id);
-  const MIN = 2, MAX = 20;
-  let choices = [];
-
-  // ---- pixel ball: charcoal, banded shading with a glossy spot ----
-  (function drawBall() {
-    const N = 32, c = 15.5, r = 15.5;
-    const shades = ['#4a4a50', '#3a3a40', '#2b2b30', '#1f1f23', '#151518', '#0c0c0e'];
-    let out = '';
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-      const d = Math.hypot(x - c, y - c);
-      if (d > r) continue;
-      const l = Math.hypot(x - 10, y - 8) / 26;           // distance from light, 0..~1
-      let col = shades[Math.min(shades.length - 1, Math.floor(l * shades.length))];
-      if (d > r - 1.2) col = '#050506';                     // outline
-      else if (d > r - 2.2 && x > c && y < c) col = '#3a3a40'; // soft rim light, upper right
-      if (Math.hypot(x - 9, y - 7) < 2.2) col = '#6a6a72';  // glossy spot
-      out += `<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`;
-    }
-    $('ball').innerHTML = out;
-  })();
-
-  (function drawWindow() {
-    const N = 20, c = 9.5, r = 9.5;
-    let back = '', rim = '';
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-      const d = Math.hypot(x - c, y - c);
-      if (d > r) continue;
-      const cell = col => `<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`;
-      back += cell('#04040a');                              // near-black liquid
-      if (d > r - 1.2) rim += cell('#2e2e33');
-      else if (d > r - 2.8) rim += cell('#08080a');
-      else if (d > r - 3.6) rim += cell('#1b1b20');
-    }
-    $('win-back').innerHTML = back;
-    $('win-rim').innerHTML = rim;
-  })();
-
-  // ---- setup ----
-  function clampCount() {
-    let n = parseInt($('count').value, 10);
-    if (isNaN(n)) n = 0;
-    return Math.max(0, Math.min(MAX, n));
-  }
-  function renderFields() {
-    const n = clampCount();
-    const f = $('fields');
-    const old = [...f.querySelectorAll('input')].map(i => i.value);
-    f.innerHTML = '';
-    for (let i = 0; i < n; i++) {
-      const inp = document.createElement('input');
-      inp.type = 'text'; inp.maxLength = 40;
-      inp.placeholder = 'CHOICE ' + (i + 1);
-      inp.setAttribute('aria-label', 'Choice ' + (i + 1));
-      inp.value = old[i] || '';
-      f.appendChild(inp);
-    }
-  }
-  $('count').addEventListener('input', renderFields);
-
-  function shareUrl() {
-    const q = choices.map(c => 'c=' + encodeURIComponent(c)).join('&');
-    return location.href.split(/[?#]/)[0] + '?' + q;
-  }
-  function startPlay(vals) {
-    choices = vals;
-    try { history.replaceState(null, '', shareUrl()); } catch (e) { /* e.g. file:// */ }
-    $('setup').classList.add('hidden');
-    $('play').classList.remove('hidden');
-    hideTri();
-    $('hint').textContent = 'TAP THE BALL TO SHAKE';
-    $('share').textContent = 'COPY SHARE LINK';
-  }
-  function fillSetup(vals) {
-    $('count').value = Math.max(MIN, vals.length || 3);
-    renderFields();
-    $('fields').querySelectorAll('input').forEach((inp, i) => { inp.value = vals[i] || ''; });
-  }
-
-  $('go').addEventListener('click', () => {
-    const n = parseInt($('count').value, 10);
-    if (!(n >= MIN && n <= MAX)) { $('err').textContent = `PICK ${MIN}-${MAX} CHOICES`; return; }
-    const vals = [...$('fields').querySelectorAll('input')].map(i => i.value.trim());
-    if (vals.some(v => !v)) { $('err').textContent = 'FILL IN EVERY CHOICE'; return; }
-    $('err').textContent = '';
-    startPlay(vals);
-  });
-
-  $('back').addEventListener('click', () => {
-    fillSetup(choices);
-    $('play').classList.add('hidden');
-    $('setup').classList.remove('hidden');
-  });
-
-  $('share').addEventListener('click', async () => {
-    const url = shareUrl();
-    try { await navigator.clipboard.writeText(url); $('share').textContent = 'COPIED!'; }
-    catch (e) { window.prompt('Copy this link:', url); }
-  });
-
-  // ---- uniform random (rejection sampling, no modulo bias) ----
-  function randInt(n) {
-    const max = Math.floor(0x100000000 / n) * n;
-    const buf = new Uint32Array(1);
-    do { crypto.getRandomValues(buf); } while (buf[0] >= max);
-    return buf[0] % n;
-  }
-
-  // ---- shake ----
-  let busy = false;
-  const tri = $('tri');
-  let spin = null;
-  function fit(text) {
-    const n = text.length;
-    return n <= 5 ? 20 : n <= 10 ? 15 : n <= 18 ? 12 : n <= 30 ? 10 : 8;
-  }
-  function hideTri() {
-    clearInterval(spin);
-    tri.classList.remove('on', 'bob');
-    tri.style.cssText = '';
-    $('answer').style.opacity = 0;
-  }
-  // Triangle tumbles in the dark liquid during the shake, then rises to the glass.
-  function tumble(text, onDone) {
-    const a = $('answer');
-    a.textContent = text;
-    a.style.fontSize = fit(text) + 'px';
-    a.style.opacity = 0;
-    tri.classList.add('on');
-    const steps = 17;
-    let t = 0, angle = randInt(360);
-    tri.style.transition = 'transform .1s linear, opacity .1s linear, filter .1s linear';
-    const frame = () => {
-      const p = t / steps;                       // 0 = deep, 1 = at the glass
-      const dark = p * p;
-      tri.style.opacity = (0.12 + 0.88 * dark).toFixed(2);
-      tri.style.filter = `brightness(${(0.25 + 0.75 * dark).toFixed(2)})`;
-      // text only becomes legible in the last few steps
-      a.style.opacity = p < 0.75 ? 0 : Math.min(1, (p - 0.75) / 0.2).toFixed(2);
-      if (t >= steps) {
-        clearInterval(spin);
-        // ease to the nearest upright orientation with a slight tilt
-        tri.style.transition = 'transform .45s ease-out, opacity .1s linear, filter .1s linear';
-        tri.style.transform = `rotate(${Math.ceil(angle / 360) * 360 + randInt(11) - 5}deg) scale(1)`;
-        tri.style.opacity = 1; tri.style.filter = 'none'; a.style.opacity = 1;
-        setTimeout(() => { tri.classList.add('bob'); onDone(); }, 450);
-        return;
-      }
-      angle += 50 + randInt(110);                // keep turning the same way: smooth tumble
-      const sc = 0.5 + 0.5 * p;
-      tri.style.transform = `rotate(${angle}deg) scale(${sc.toFixed(2)})`;
-      t++;
-    };
-    frame();
-    spin = setInterval(frame, 100);
-  }
-  function shake() {
-    if (busy) return;
-    busy = true;
-    const pick = choices[randInt(choices.length)];
-    hideTri();
-    $('hint').textContent = '...';
-    const ball = $('ball-wrap');
-    ball.classList.remove('shake'); void ball.offsetWidth; ball.classList.add('shake');
-    setTimeout(() => ball.classList.remove('shake'), 650);
-    tumble(pick, () => { $('hint').textContent = 'SHAKE AGAIN?'; busy = false; });
-  }
-  $('ball-wrap').addEventListener('click', shake);
-  $('ball-wrap').addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); shake(); }
-  });
-  $('shake').addEventListener('click', shake);
-
-  // ---- load choices from the URL: ?c=Pizza&c=Tacos&c=Sushi ----
-  const fromUrl = new URLSearchParams(location.search).getAll('c')
-    .map(v => v.trim().slice(0, 40)).filter(Boolean).slice(0, MAX);
-  if (fromUrl.length >= MIN) { fillSetup(fromUrl); startPlay(fromUrl); }
-  else { renderFields(); if (fromUrl.length) fillSetup(fromUrl); }
-})();
-</script>
+<script src="js/core.js"></script>
+<script src="js/games/eightball.js"></script>
+<script src="js/games/wheel.js"></script>
+<script src="js/games/dice.js"></script>
+<script src="js/games/coin.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

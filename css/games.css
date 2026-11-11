@@ -1,0 +1,36 @@
+/* ---- wheel ---- */
+#wheel-wrap { position:relative; width:min(86vw,340px); aspect-ratio:1; cursor:pointer; touch-action:manipulation; user-select:none; margin-top:14px; }
+#wheel { width:100%; height:100%; display:block; }
+#wheel-ptr { position:absolute; left:50%; top:-14px; width:0; height:0; transform:translateX(-50%); z-index:2;
+  border-left:14px solid transparent; border-right:14px solid transparent; border-top:26px solid var(--accent);
+  filter:drop-shadow(0 3px 0 #000); }
+
+/* ---- dice ---- */
+#die-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  height:min(90vw,340px); cursor:pointer; touch-action:manipulation; user-select:none; }
+#die { width:min(56vw,210px); aspect-ratio:calc(1 / var(--ar)); position:relative; transform:rotate(var(--tilt,0deg)); }
+#die.rolling { animation:roll 1.4s ease-out 1; }
+@keyframes roll {
+  0%   { transform:translateY(0) rotate(0); }
+  20%  { transform:translateY(-70px) rotate(220deg); }
+  40%  { transform:translateY(0) rotate(430deg); }
+  55%  { transform:translateY(-34px) rotate(620deg); }
+  70%  { transform:translateY(0) rotate(780deg); }
+  84%  { transform:translateY(-10px) rotate(950deg); }
+  100% { transform:translateY(0) rotate(calc(1080deg + var(--tilt,0deg))); } }
+#die-shape { position:absolute; inset:0; background:#b13e53; clip-path:var(--poly); }
+#die-shape::after { content:""; position:absolute; inset:0; background:#ef7d57; clip-path:var(--poly-in); }
+#die-face { position:absolute; left:50%; top:var(--tt); width:var(--tw); height:var(--th); transform:translateX(-50%);
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  font-family:'Marcellus', Optima, Candara, 'Gill Sans', sans-serif; font-variant:small-caps;
+  color:#1a1c2c; line-height:1.15; word-break:break-word; overflow:hidden; text-wrap:balance; }
+#die-cap { color:var(--dim); font-size:10px; }
+
+/* ---- coin ---- */
+#coin-wrap { display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  height:min(90vw,340px); padding-bottom:60px; cursor:pointer; touch-action:manipulation; user-select:none; }
+#coin { width:150px; height:150px; border-radius:50%; background:#ffcd75; border:6px solid #8a5a1d;
+  box-shadow:inset 0 0 0 6px #d99a3b; display:flex; align-items:center; justify-content:center; }
+#coin-face { width:76%; text-align:center; color:#5a3a0a; font-family:'Marcellus', Optima, Candara, serif;
+  font-variant:small-caps; line-height:1.1; word-break:break-word; overflow:hidden; }
+#coin-shadow { width:110px; height:14px; border-radius:50%; background:#000; opacity:.5; margin-top:10px; }
