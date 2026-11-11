@@ -44,7 +44,10 @@
   #win-rim { pointer-events:none; }
   #tri-box { position:absolute; inset:14%; display:flex; align-items:center; justify-content:center;
     overflow:hidden; border-radius:50%; clip-path:circle(50%); }
-  #tri { position:relative; width:68%; aspect-ratio:1/0.9; opacity:0; }
+  /* The triangle's centroid sits at the window's centre and it rotates about that point,
+     so its corners never swing farther than ~0.27 of the window width -- always under the glass. */
+  #tri { position:absolute; left:50%; top:50%; width:62%; margin-left:-31%; margin-top:-18.6%;
+    aspect-ratio:1/0.9; transform-origin:50% 33.33%; opacity:0; }
   #tri.on { opacity:1; }
   #tri.bob { animation:bob 1.6s steps(4,end) infinite alternate; }
   @keyframes bob { from{translate:0 -2px} to{translate:0 2px} }
@@ -217,7 +220,8 @@
     a.style.opacity = 0;
     tri.classList.add('on');
     const steps = 17;
-    let t = 0;
+    let t = 0, angle = randInt(360);
+    tri.style.transition = 'transform .1s linear, opacity .1s linear, filter .1s linear';
     const frame = () => {
       const p = t / steps;                       // 0 = deep, 1 = at the glass
       const dark = p * p;
@@ -227,15 +231,16 @@
       a.style.opacity = p < 0.75 ? 0 : Math.min(1, (p - 0.75) / 0.2).toFixed(2);
       if (t >= steps) {
         clearInterval(spin);
-        tri.style.transform = `rotate(${randInt(11) - 5}deg) scale(1)`;
+        // ease to the nearest upright orientation with a slight tilt
+        tri.style.transition = 'transform .45s ease-out, opacity .1s linear, filter .1s linear';
+        tri.style.transform = `rotate(${Math.ceil(angle / 360) * 360 + randInt(11) - 5}deg) scale(1)`;
         tri.style.opacity = 1; tri.style.filter = 'none'; a.style.opacity = 1;
-        tri.classList.add('bob');
-        onDone();
+        setTimeout(() => { tri.classList.add('bob'); onDone(); }, 450);
         return;
       }
-      const ang = randInt(360), flip = randInt(2) ? -1 : 1;
-      const sc = 0.45 + 0.55 * p;
-      tri.style.transform = `rotate(${ang}deg) scaleX(${flip}) scale(${sc.toFixed(2)})`;
+      angle += 50 + randInt(110);                // keep turning the same way: smooth tumble
+      const sc = 0.5 + 0.5 * p;
+      tri.style.transform = `rotate(${angle}deg) scale(${sc.toFixed(2)})`;
       t++;
     };
     frame();
