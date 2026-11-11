@@ -80,6 +80,7 @@
     </div>
     <div id="hint">TAP THE BALL TO SHAKE</div>
     <button id="shake">SHAKE!</button><br>
+    <button id="share" class="ghost">COPY SHARE LINK</button><br>
     <button id="back" class="ghost">&lt; EDIT</button>
   </section>
 </main>
@@ -146,22 +147,44 @@
   }
   $('count').addEventListener('input', renderFields);
 
+  function shareUrl() {
+    const q = choices.map(c => 'c=' + encodeURIComponent(c)).join('&');
+    return location.origin + location.pathname + '?' + q;
+  }
+  function startPlay(vals) {
+    choices = vals;
+    history.replaceState(null, '', shareUrl());
+    $('setup').classList.add('hidden');
+    $('play').classList.remove('hidden');
+    hideTri();
+    $('hint').textContent = 'TAP THE BALL TO SHAKE';
+    $('share').textContent = 'COPY SHARE LINK';
+  }
+  function fillSetup(vals) {
+    $('count').value = Math.max(MIN, vals.length || 3);
+    renderFields();
+    $('fields').querySelectorAll('input').forEach((inp, i) => { inp.value = vals[i] || ''; });
+  }
+
   $('go').addEventListener('click', () => {
     const n = parseInt($('count').value, 10);
     if (!(n >= MIN && n <= MAX)) { $('err').textContent = `PICK ${MIN}-${MAX} CHOICES`; return; }
     const vals = [...$('fields').querySelectorAll('input')].map(i => i.value.trim());
     if (vals.some(v => !v)) { $('err').textContent = 'FILL IN EVERY CHOICE'; return; }
     $('err').textContent = '';
-    choices = vals;
-    $('setup').classList.add('hidden');
-    $('play').classList.remove('hidden');
-    hideTri();
-    $('hint').textContent = 'TAP THE BALL TO SHAKE';
+    startPlay(vals);
   });
 
   $('back').addEventListener('click', () => {
+    fillSetup(choices);
     $('play').classList.add('hidden');
     $('setup').classList.remove('hidden');
+  });
+
+  $('share').addEventListener('click', async () => {
+    const url = shareUrl();
+    try { await navigator.clipboard.writeText(url); $('share').textContent = 'COPIED!'; }
+    catch (e) { window.prompt('Copy this link:', url); }
   });
 
   // ---- uniform random (rejection sampling, no modulo bias) ----
@@ -235,7 +258,11 @@
   });
   $('shake').addEventListener('click', shake);
 
-  renderFields();
+  // ---- load choices from the URL: ?c=Pizza&c=Tacos&c=Sushi ----
+  const fromUrl = new URLSearchParams(location.search).getAll('c')
+    .map(v => v.trim().slice(0, 40)).filter(Boolean).slice(0, MAX);
+  if (fromUrl.length >= MIN) { fillSetup(fromUrl); startPlay(fromUrl); }
+  else { renderFields(); if (fromUrl.length) fillSetup(fromUrl); }
 })();
 </script>
 </body>
