@@ -1,7 +1,7 @@
 // The magic 8-ball: moved over unchanged from the original single-file version.
 (() => {
   const { $, randInt, fit } = CM;
-  let tri = null, spin = null;
+  let tri = null, spin = null, sound = null;
 
   const TEMPLATE = `
     <div id="ball-wrap" role="button" tabindex="0" aria-label="Shake the eight ball">
@@ -102,8 +102,10 @@
       const ball = $('ball-wrap');
       ball.classList.remove('shake'); void ball.offsetWidth; ball.classList.add('shake');
       setTimeout(() => ball.classList.remove('shake'), 650);
+      CM.audio.slosh(1.5);                                   // liquid sloshing around the shake
+      sound = setTimeout(() => CM.audio.bloop(), 1300);      // triangle surfaces at the glass
       tumble(CM.ctx.choices[idx], () => done('SHAKE AGAIN?'));
     },
-    unmount() { clearInterval(spin); clearTimeout(spin); }
+    unmount() { clearInterval(spin); clearTimeout(spin); clearTimeout(sound); }
   });
 })();

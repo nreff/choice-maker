@@ -63,6 +63,7 @@
   }
   ctx.trigger = () => {
     if (busy || !game) return;
+    CM.audio.unlock();
     busy = true;
     const idx = CM.randInt(choices.length);      // winner decided here, uniformly, before any animation
     $('hint').textContent = '...';
@@ -103,6 +104,11 @@
     try { await navigator.clipboard.writeText(url); $('share').textContent = 'COPIED!'; }
     catch (e) { window.prompt('Copy this link:', url); }
   });
+
+  // ---- sound toggle ----
+  const paintMute = () => { $('mute').textContent = 'SOUND: ' + (CM.audio.muted ? 'OFF' : 'ON'); };
+  $('mute').addEventListener('click', () => { CM.audio.setMuted(!CM.audio.muted); paintMute(); });
+  paintMute();
 
   // ---- boot ----
   buildPicker();

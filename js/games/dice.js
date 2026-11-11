@@ -1,62 +1,88 @@
-// Dice: the die's shape matches the number of choices (d4 ... d20); it tumbles and the top face shows the pick.
+// Dice: a real 3D cube thrown onto a felt table. It tumbles, bounces (with clacks) and settles with the pick facing you.
 (() => {
   const { $, randInt, fit } = CM;
-  const DICE = [4, 6, 8, 10, 12, 20];
-  // poly/inn = outer + facet polygons; tt/tw/th = text box (% of the die); ar = height / width
-  const SHAPES = {
-    4:  { ar: .9,  poly: 'polygon(50% 0,100% 100%,0 100%)',                       inn: 'polygon(50% 12%,90% 94%,10% 94%)',                                tt: 42, tw: 50, th: 40 },
-    6:  { ar: 1,   poly: 'polygon(0 0,100% 0,100% 100%,0 100%)',                  inn: 'polygon(7% 7%,93% 7%,93% 93%,7% 93%)',                            tt: 12, tw: 76, th: 76 },
-    8:  { ar: 1.1, poly: 'polygon(50% 0,100% 50%,50% 100%,0 50%)',                inn: 'polygon(50% 8%,92% 50%,50% 92%,8% 50%)',                          tt: 26, tw: 50, th: 48 },
-    10: { ar: 1.1, poly: 'polygon(50% 0,100% 38%,50% 100%,0 38%)',                inn: 'polygon(50% 8%,92% 38%,50% 90%,8% 38%)',                          tt: 20, tw: 56, th: 40 },
-    12: { ar: .95, poly: 'polygon(50% 0,100% 38%,81% 100%,19% 100%,0 38%)',       inn: 'polygon(50% 8%,92% 38%,76% 92%,24% 92%,8% 38%)',                  tt: 18, tw: 70, th: 62 },
-    20: { ar: .9,  poly: 'polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)', inn: 'polygon(27% 8%,73% 8%,92% 50%,73% 92%,27% 92%,8% 50%)',           tt: 22, tw: 64, th: 56 }
-  };
-  // Nearest die for n choices; ties round up (n=2,3 -> d4).
-  const dieFor = n => DICE.reduce((best, d) => {
-    const e = Math.abs(d - n), eb = Math.abs(best - n);
-    return e < eb || (e === eb && d > best) ? d : best;
-  });
+  const SIZE = 96;                                           // cube edge in px
+  const DUR = 2000;                                          // ms
+  // [start, end, peak height] of each hop; first entry is the initial drop from height 90
+  const HOPS = [[0.28, 0.50, 40], [0.50, 0.66, 16], [0.66, 0.78, 6], [0.78, 0.86, 2]];
+  const FACES = [                                            // front is the one that ends up facing you
+    `rotateY(0deg)`, `rotateY(90deg)`, `rotateY(180deg)`, `rotateY(-90deg)`, `rotateX(90deg)`, `rotateX(-90deg)`
+  ];
+  let raf = 0, cube = null, shadow = null, faceEls = [];
 
-  let timer = null, timer2 = null, die = null, face = null;
+  function label(el, text) {
+    el.firstChild.textContent = text;
+    el.style.fontSize = Math.round(fit(text) * 0.95) + 'px';
+  }
 
-  function setFace(text) {
-    face.textContent = text;
-    face.style.fontSize = Math.round(fit(text) * 1.1) + 'px';
+  // Put the pick on the front face and other (shuffled) choices on the rest.
+  function dress(choices, idx) {
+    const others = choices.map((_, i) => i).filter(i => i !== idx);
+    for (let i = others.length - 1; i > 0; i--) { const j = randInt(i + 1); [others[i], others[j]] = [others[j], others[i]]; }
+    label(faceEls[0], choices[idx]);
+    for (let f = 1; f < 6; f++) label(faceEls[f], others.length ? choices[others[(f - 1) % others.length]] : choices[idx]);
   }
 
   CM.register({
     id: 'dice', name: 'DICE', action: 'ROLL!', hint: 'TAP THE DIE TO ROLL',
     mount(stage, ctx) {
-      const d = dieFor(ctx.choices.length), sh = SHAPES[d];
-      stage.innerHTML = `<div id="die-wrap" role="button" tabindex="0" aria-label="Roll the die">
-        <div id="die"><div id="die-shape"></div><div id="die-face"></div></div>
-        <div id="die-cap">D${d}</div></div>`;
-      die = $('die'); face = $('die-face');
-      die.style.cssText = `--ar:${sh.ar};--poly:${sh.poly};--poly-in:${sh.inn};--tt:${sh.tt}%;--tw:${sh.tw}%;--th:${sh.th}%;--tilt:0deg`;
-      setFace('?');
-      const wrap = $('die-wrap');
-      wrap.addEventListener('click', () => ctx.trigger());
-      wrap.addEventListener('keydown', e => {
+      stage.innerHTML = `<div id="dice-box" role="button" tabindex="0" aria-label="Roll the die">
+        <div id="dice-scene">
+          <div id="dice-felt"></div>
+          <div id="dice-shadow"></div>
+          <div id="cube">${FACES.map((tr, i) =>
+            `<div class="face" style="transform:${tr} translateZ(${SIZE / 2}px)"><span></span></div>`).join('')}</div>
+        </div>
+        <div id="die-cap">THROW IT!</div></div>`;
+      cube = $('cube'); shadow = $('dice-shadow');
+      faceEls = [...document.querySelectorAll('#cube .face')];
+      const c = ctx.choices;
+      faceEls.forEach((el, i) => label(el, c[i % c.length]));
+      cube.style.transform = 'rotateX(-16deg) rotateY(-24deg)';
+      const box = $('dice-box');
+      box.addEventListener('click', () => ctx.trigger());
+      box.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ctx.trigger(); }
       });
     },
     roll(idx, done) {
-      const choices = CM.ctx.choices, n = choices.length;
-      die.classList.remove('rolling');
-      die.style.setProperty('--tilt', (randInt(13) - 6) + 'deg');
-      void die.offsetWidth;
-      die.classList.add('rolling');
-      // The face flickers through random choices, slowing down, then lands on the pick.
-      let delay = 60, elapsed = 0;
-      const tick = () => {
-        if (elapsed >= 1200) { setFace(choices[idx]); return; }
-        setFace(choices[randInt(n)]);
-        elapsed += delay; delay *= 1.18;
-        timer = setTimeout(tick, delay);
+      cancelAnimationFrame(raf);
+      dress(CM.ctx.choices, idx);
+      $('die-cap').textContent = '...';
+      // resting pose, and how many full turns to burn off on the way (multiples of 360 so it lands exact)
+      const fx = -16 + randInt(9) - 4, fy = -24 + randInt(13) - 6;
+      const ax = 360 * (2 + randInt(3)) * (randInt(2) ? 1 : -1);
+      const ay = 360 * (3 + randInt(3)) * (randInt(2) ? 1 : -1);
+      const az = 360 * (1 + randInt(2)) * (randInt(2) ? 1 : -1);
+      const x0 = -120 + randInt(30), start = performance.now();
+      const contacts = [0.28, 0.50, 0.66, 0.78, 0.86];
+      let ci = 0;
+      const step = now => {
+        const t = Math.min(1, (now - start) / DUR);
+        const e = 1 - Math.pow(1 - Math.min(1, t / 0.9), 3);        // spin eases out
+        const k = 1 - e;
+        cube.style.transform = `rotateX(${fx + ax * k}deg) rotateY(${fy + ay * k}deg) rotateZ(${az * k}deg)`;
+        let h = 0;
+        if (t < HOPS[0][0]) { const u = t / HOPS[0][0]; h = 90 * (1 - u * u); }
+        else for (const [a, b, peak] of HOPS) {
+          if (t >= a && t < b) { const u = (t - a) / (b - a); h = 4 * peak * u * (1 - u); break; }
+        }
+        const x = x0 * Math.pow(1 - Math.min(1, t / 0.8), 2);       // slides in from the left
+        cube.parentNode.style.setProperty('--h', h.toFixed(1) + 'px');
+        cube.style.translate = `${x.toFixed(1)}px ${(-h).toFixed(1)}px`;
+        shadow.style.transform = `translateX(${x.toFixed(1)}px) scale(${(1 - h / 160).toFixed(3)})`;
+        shadow.style.opacity = (0.55 - h / 400).toFixed(2);
+        while (ci < contacts.length && t >= contacts[ci]) {          // clack on every impact
+          CM.audio.clack(1 - ci * 0.17, 0.9 + Math.random() * 0.25); ci++;
+        }
+        if (t < 1) { raf = requestAnimationFrame(step); return; }
+        cube.style.transform = `rotateX(${fx}deg) rotateY(${fy}deg)`;
+        cube.style.translate = '0 0';
+        $('die-cap').textContent = 'D6';
+        done('> ' + CM.ctx.choices[idx].toUpperCase());
       };
-      tick();
-      timer2 = setTimeout(() => done('> ' + choices[idx].toUpperCase()), 1500);
+      raf = requestAnimationFrame(step);
     },
-    unmount() { clearTimeout(timer); clearTimeout(timer2); }
+    unmount() { cancelAnimationFrame(raf); }
   });
 })();
