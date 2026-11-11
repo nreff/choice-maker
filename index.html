@@ -46,21 +46,35 @@
     overflow:hidden; border-radius:50%; clip-path:circle(50%); }
   /* The triangle's centroid sits at the window's centre and it rotates about that point,
      so its corners never swing farther than ~0.27 of the window width -- always under the glass. */
-  #tri { position:absolute; left:50%; top:50%; width:62%; margin-left:-31%; margin-top:-18.6%;
-    aspect-ratio:1/0.9; transform-origin:50% 33.33%; opacity:0; }
+  /* Each face shape defines: --w (width in the window), --ar (height/width), --py (pivot y = centroid),
+     --poly / --poly-in (outer + facet polygons) and the text box (--tt top, --tw width, --th height).
+     The pivot sits at the window centre and --w keeps the farthest corner within ~0.27 of the
+     window width, so a tumbling face always stays under the rim. */
+  #tri { --w:62%; --ar:.9; --py:.3333; --tt:12%; --tw:54%; --th:44%;
+    --poly:polygon(0 0,100% 0,50% 100%); --poly-in:polygon(7% 5%,93% 5%,50% 90%);
+    position:absolute; left:50%; top:50%; width:var(--w); margin-left:calc(var(--w) / -2);
+    margin-top:calc(var(--w) * var(--ar) * var(--py) * -1);
+    aspect-ratio:calc(1 / var(--ar)); transform-origin:50% calc(var(--py) * 100%); opacity:0; }
+  #tri[data-shape="coin"] { --w:69%; --ar:1; --py:.5; --tt:18%; --tw:70%; --th:64%;
+    --poly:circle(50%); --poly-in:circle(43% at 50% 48%); }
+  #tri[data-shape="square"] { --w:53%; --ar:1; --py:.5; --tt:15%; --tw:74%; --th:70%;
+    --poly:polygon(0 0,100% 0,100% 100%,0 100%); --poly-in:polygon(7% 7%,93% 7%,93% 93%,7% 93%); }
+  #tri[data-shape="kite"] { --w:63%; --ar:1.1; --py:.46; --tt:20%; --tw:56%; --th:40%;
+    --poly:polygon(50% 0,100% 38%,50% 100%,0 38%); --poly-in:polygon(50% 8%,92% 38%,50% 90%,8% 38%); }
+  #tri[data-shape="pent"] { --w:70%; --ar:.95; --py:.55; --tt:18%; --tw:70%; --th:62%;
+    --poly:polygon(50% 0,100% 38%,81% 100%,19% 100%,0 38%);
+    --poly-in:polygon(50% 8%,92% 38%,76% 92%,24% 92%,8% 38%); }
   #tri.on { opacity:1; }
   #tri.bob { animation:bob 1.6s steps(4,end) infinite alternate; }
   @keyframes bob { from{translate:0 -2px} to{translate:0 2px} }
-  /* inverted triangle, like the real thing */
-  #tri-shape { position:absolute; inset:0; background:#1c20d8;
-    clip-path:polygon(0 0,100% 0,50% 100%); }
-  #tri-shape::after { content:""; position:absolute; inset:0; background:#2b34ff;
-    clip-path:polygon(7% 5%,93% 5%,50% 90%); }
-  #answer { position:absolute; left:50%; top:12%; width:54%; height:44%; transform:translateX(-50%);
+  #tri-shape { position:absolute; inset:0; background:#1c20d8; clip-path:var(--poly); }
+  #tri-shape::after { content:""; position:absolute; inset:0; background:#2b34ff; clip-path:var(--poly-in); }
+  #answer { position:absolute; left:50%; top:var(--tt); width:var(--tw); height:var(--th); transform:translateX(-50%);
     display:flex; align-items:center; justify-content:center; text-align:center;
     font-family:'Marcellus', Optima, Candara, 'Gill Sans', sans-serif; font-variant:small-caps;
     color:#c9d3ff; font-size:12px; line-height:1.15; word-break:break-word; overflow:hidden; text-wrap:balance; }
   #hint { margin-top:24px; color:var(--dim); }
+  #proof { margin-top:20px; color:var(--dim); font-size:8px; line-height:2; min-height:4em; }
   @media (prefers-reduced-motion: reduce) { #ball-wrap.shake { animation:none; } }
 </style>
 </head>
@@ -82,6 +96,7 @@
       <div id="window"><svg id="win-back" class="win-svg" viewBox="0 0 20 20" shape-rendering="crispEdges"></svg><div id="tri-box"><div id="tri"><div id="tri-shape"></div><div id="answer"></div></div></div><svg id="win-rim" class="win-svg" viewBox="0 0 20 20" shape-rendering="crispEdges"></svg></div>
     </div>
     <div id="hint">TAP THE BALL TO SHAKE</div>
+    <div id="proof"></div>
     <button id="shake">SHAKE!</button><br>
     <button id="share" class="ghost">COPY SHARE LINK</button><br>
     <button id="back" class="ghost">&lt; EDIT</button>
@@ -154,8 +169,31 @@
     const q = choices.map(c => 'c=' + encodeURIComponent(c)).join('&');
     return location.href.split(/[?#]/)[0] + '?' + q;
   }
+  // Face shape follows the nearest die for the number of choices (ties round up).
+  const DICE = [2, 4, 6, 8, 10, 12, 20];
+  const SHAPE = { 2: 'coin', 4: 'tri', 6: 'square', 8: 'tri', 10: 'kite', 12: 'pent', 20: 'tri' };
+  function dieFor(n) {
+    return DICE.reduce((best, d) => {
+      const e = Math.abs(d - n), eb = Math.abs(best - n);
+      return e < eb || (e === eb && d > best) ? d : best;
+    });
+  }
+  let tally = [], rolls = 0;
+  function renderProof() {
+    const n = choices.length, die = dieFor(n);
+    let t = `${die === 2 ? 'COIN' : 'D' + die} FACE<br>P = 1/${n} = ${(100 / n).toFixed(1)}% EACH. QED`;
+    if (rolls) {
+      const e = rolls / n;
+      const chi = tally.reduce((sum, o) => sum + (o - e) * (o - e) / e, 0);
+      t += `<br>SHAKES ${rolls} | CHI-SQ ${chi.toFixed(2)} (DF ${n - 1})`;
+    }
+    $('proof').innerHTML = t;
+  }
   function startPlay(vals) {
     choices = vals;
+    tally = vals.map(() => 0); rolls = 0;
+    tri.dataset.shape = SHAPE[dieFor(vals.length)];
+    renderProof();
     try { history.replaceState(null, '', shareUrl()); } catch (e) { /* e.g. file:// */ }
     $('setup').classList.add('hidden');
     $('play').classList.remove('hidden');
@@ -249,13 +287,13 @@
   function shake() {
     if (busy) return;
     busy = true;
-    const pick = choices[randInt(choices.length)];
+    const idx = randInt(choices.length), pick = choices[idx];
     hideTri();
     $('hint').textContent = '...';
     const ball = $('ball-wrap');
     ball.classList.remove('shake'); void ball.offsetWidth; ball.classList.add('shake');
     setTimeout(() => ball.classList.remove('shake'), 650);
-    tumble(pick, () => { $('hint').textContent = 'SHAKE AGAIN?'; busy = false; });
+    tumble(pick, () => { tally[idx]++; rolls++; renderProof(); $('hint').textContent = 'SHAKE AGAIN?'; busy = false; });
   }
   $('ball-wrap').addEventListener('click', shake);
   $('ball-wrap').addEventListener('keydown', e => {
