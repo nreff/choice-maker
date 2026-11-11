@@ -8,18 +8,18 @@
 /* ---- dice ---- */
 #dice-box { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
   cursor:pointer; touch-action:manipulation; user-select:none; }
-#dice-scene { position:relative; width:min(90vw,340px); height:min(80vw,300px); perspective:800px; overflow:hidden; }
+#dice-scene { position:relative; width:min(92vw,360px); height:340px; perspective:900px; }
 #dice-felt { position:absolute; left:0; right:0; bottom:0; height:46%; background:#2a6b46;
   border-top:8px solid #8a5a1d; box-shadow:inset 0 10px 0 rgba(0,0,0,.25); }
-#dice-shadow { position:absolute; left:50%; bottom:20%; width:90px; height:16px; margin-left:-45px;
+#dice-shadow { position:absolute; left:50%; bottom:20%; width:120px; height:18px; margin-left:-60px;
   border-radius:50%; background:#000; opacity:.5; }
-#cube { position:absolute; left:50%; bottom:26%; width:96px; height:96px; margin-left:-48px;
-  transform-style:preserve-3d; transform:rotateX(-16deg) rotateY(-24deg); }
-#cube .face { position:absolute; inset:0; background:#b13e53; border:4px solid #ef7d57;
-  display:flex; align-items:center; justify-content:center; text-align:center; padding:6px;
-  font-family:'Marcellus', Optima, Candara, 'Gill Sans', sans-serif; font-variant:small-caps;
-  color:#f4f4f4; line-height:1.1; word-break:break-word; overflow:hidden; backface-visibility:hidden; }
-#die-cap { color:var(--dim); font-size:10px; min-height:1.8em; }
+#cube { position:absolute; left:50%; width:0; height:0; transform-style:preserve-3d; }
+.dface { position:absolute; background:#000; backface-visibility:hidden; }
+.din { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center;
+  font-family:'Marcellus', Optima, Candara, 'Gill Sans', sans-serif; font-variant:small-caps; line-height:1.05; }
+.din[data-spare="1"] { font-family:'Press Start 2P', monospace; font-variant:normal; }
+.din span { display:block; word-break:break-word; overflow:hidden; }
+#die-cap { color:var(--dim); font-size:9px; min-height:1.8em; }
 
 /* ---- coin toss ---- */
 #coin-scene { position:relative; width:min(92vw,420px); aspect-ratio:160/110; cursor:pointer;
@@ -35,3 +35,4 @@
 #coin-face { width:78%; text-align:center; color:#5a3a0a; font-family:'Marcellus', Optima, Candara, serif;
   font-variant:small-caps; line-height:1.1; word-break:break-word; overflow:hidden; }
 #coin-tag { color:var(--accent); font-size:9px; }
+#coin-joke { color:#c9d3ff; font-size:7px; line-height:1.8; width:82%; text-align:center; min-height:1.8em; }

@@ -1,8 +1,16 @@
-// Coin toss, football style: side view of a field. A referee flips the coin, two players watch it,
+// MAGIC COIN toss, football style: side view of a field. A referee flips the coin, two players watch it,
 // it bounces on the turf and settles, then a replay-style close-up reveals the face (the pick).
-// Works for any number of choices: the coin's "face" is whatever the pick is.
+// It's a magic coin, so it works for any number of choices: the face is whatever the pick is.
+// With more than two choices it tells you so (jokingly).
 (() => {
   const { $, fit } = CM;
+  const JOKES = [
+    n => `A COIN WITH ${n} SIDES? IT'S MAGIC. DON'T ASK.`,
+    n => `PHYSICISTS ARE FURIOUS. THIS COIN HAS ${n} SIDES.`,
+    n => `THE REF ALLOWED IT. ${n} SIDES. LEGAL IN ALL 50 STATES.`,
+    n => `THE LEAGUE IS INVESTIGATING A ${n}-SIDED COIN.`,
+    n => `${n} SIDES, ZERO QUESTIONS. THE COIN HAS SPOKEN.`
+  ];
   const G = 92;                                  // ground line (svg is 160 x 110)
   let raf = 0, scene = null, players = [], refArm = null, coinG = null, coinE = null, coinE2 = null, shadow = null, timers = [];
 
@@ -84,10 +92,11 @@
   const X0 = 71, X1 = 98, Y0 = 52, YG = G - 1.6;
 
   CM.register({
-    id: 'coin', name: 'COIN', action: 'FLIP!', hint: 'TAP THE FIELD TO FLIP',
+    id: 'coin', name: 'MAGIC COIN', action: 'FLIP!',
+    hint: ctx => ctx.choices.length === 2 ? 'TAP THE FIELD TO FLIP' : `THIS MAGIC COIN HAS ${ctx.choices.length} SIDES. DON'T ASK.`,
     mount(stage, ctx) {
       stage.innerHTML = `<div id="coin-scene" role="button" tabindex="0" aria-label="Flip the coin">${buildScene()}
-        <div id="coin-reveal"><div id="coin-big"><div id="coin-face"></div></div><div id="coin-tag">THE COIN SAYS</div></div></div>`;
+        <div id="coin-reveal"><div id="coin-big"><div id="coin-face"></div></div><div id="coin-tag"></div><div id="coin-joke"></div></div></div>`;
       scene = $('coin-scene');
       players = [$('pl-a'), $('pl-b')];
       refArm = $('ref-arm'); coinG = $('coin-g'); coinE = $('coin-e'); coinE2 = $('coin-e2'); shadow = $('coin-shadow');
@@ -116,6 +125,9 @@
         revealed = true; tReveal = performance.now();
         const f = $('coin-face');
         f.textContent = pick; f.style.fontSize = Math.round(fit(pick) * 1.2) + 'px';
+        const n = CM.ctx.choices.length;
+        $('coin-tag').textContent = n === 2 ? 'THE COIN SAYS' : 'THE MAGIC COIN SAYS';
+        $('coin-joke').textContent = n === 2 ? '' : JOKES[CM.randInt(JOKES.length)](n);
         $('coin-reveal').className = 'pop';
         timers.push(setTimeout(() => done('> ' + pick.toUpperCase()), 900));
       };

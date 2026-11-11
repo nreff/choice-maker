@@ -55,7 +55,7 @@
     game = CM.byId(id) || CM.games[0];
     $('stage').innerHTML = '';
     game.mount($('stage'), ctx);
-    $('hint').textContent = game.hint;
+    $('hint').textContent = typeof game.hint === 'function' ? game.hint(ctx) : game.hint;
     $('action').textContent = game.action;
     $('share').textContent = 'COPY SHARE LINK';
     document.querySelectorAll('#picker .tile').forEach(b => b.classList.toggle('on', b.dataset.id === game.id));
