@@ -118,6 +118,36 @@
       const t = c.currentTime;
       [523, 659, 784, 1046].forEach((f, i) => tone(t + i * 0.09, 'triangle', f, f, 0.4, 0.22));
     },
+    beep(freq = 660, dur = 0.12, vol = 1) {
+      const c = ctx(); if (!c) return;
+      tone(c.currentTime, 'square', freq, freq, dur, 0.18 * vol);
+    },
+    // Geiger counter click
+    geiger(vol = 1) {
+      const c = ctx(); if (!c) return;
+      noise(c.currentTime, 0.014, 'highpass', 2600, 0.7, 0.45 * vol, 0.0005);
+    },
+    // slot-machine payout
+    kerching() {
+      const c = ctx(); if (!c) return;
+      const t = c.currentTime;
+      [0, 0.07, 0.14, 0.24, 0.31, 0.38].forEach((d, i) => {
+        tone(t + d, 'triangle', 1900 + (i % 3) * 420, 1900 + (i % 3) * 420, 0.25, 0.16);
+        noise(t + d, 0.03, 'bandpass', 5200, 3, 0.18, 0.001);
+      });
+    },
+    meow() {
+      const c = ctx(); if (!c) return;
+      const t = c.currentTime, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain();
+      o.type = 'sawtooth'; f.type = 'lowpass'; f.frequency.value = 1700; f.Q.value = 4;
+      o.frequency.setValueAtTime(520, t);
+      o.frequency.linearRampToValueAtTime(980, t + 0.16);
+      o.frequency.linearRampToValueAtTime(430, t + 0.55);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.2, t + 0.06);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + 0.65);
+    },
     roar(dur = 1.4) {
       const c = ctx(); if (!c) return;
       const t = c.currentTime;

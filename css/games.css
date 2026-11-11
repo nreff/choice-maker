@@ -36,3 +36,42 @@
   font-variant:small-caps; line-height:1.1; word-break:break-word; overflow:hidden; }
 #coin-tag { color:var(--accent); font-size:9px; }
 #coin-joke { color:#c9d3ff; font-size:7px; line-height:1.8; width:82%; text-align:center; min-height:1.8em; }
+
+/* ---- plinko ---- */
+#plinko-wrap { width:min(92vw,340px); cursor:pointer; touch-action:manipulation; user-select:none; border:4px solid #000; }
+#plinko-svg { width:100%; display:block; }
+
+/* ---- marbles ---- */
+#marbles-wrap { width:min(94vw,420px); cursor:pointer; touch-action:manipulation; user-select:none; border:4px solid #000; }
+#marbles-svg { width:100%; display:block; }
+
+/* ---- slot machine ---- */
+#slot-machine { width:min(92vw,360px); cursor:pointer; touch-action:manipulation; user-select:none; }
+#slot-top { display:flex; justify-content:space-around; background:#b13e53; border:4px solid #000; border-bottom:0; padding:8px 12px; }
+.bulb { width:14px; height:14px; border-radius:50%; background:#5a2a30; border:2px solid #000; }
+.bulb.on { background:#ffe070; box-shadow:0 0 8px #ffcd75; }
+#slot-body { position:relative; background:#b13e53; border:4px solid #000; padding:14px 46px 14px 14px; }
+#slot-window { position:relative; height:156px; background:#f4f4f4; border:4px solid #000; overflow:hidden; }
+#slot-strip { position:absolute; left:0; right:0; top:0; will-change:transform; }
+.sl-item { height:52px; display:flex; align-items:center; justify-content:center; text-align:center; color:#1a1c2c;
+  font-family:'Press Start 2P', monospace; border-bottom:2px dashed #c9c9d4; padding:0 22px; white-space:nowrap; }
+.slot-shade { position:absolute; left:0; right:0; height:52px; pointer-events:none; }
+.slot-shade.t { top:0; background:linear-gradient(rgba(0,0,0,.35), transparent); }
+.slot-shade.b { bottom:0; background:linear-gradient(transparent, rgba(0,0,0,.35)); }
+.payline { position:absolute; top:52px; height:52px; display:flex; align-items:center; color:#b13e53; font-size:12px; z-index:2; }
+.payline.l { left:3px; } .payline.r { right:3px; }
+#slot-window::after { content:""; position:absolute; left:0; right:0; top:52px; height:52px; border-top:3px solid #b13e53; border-bottom:3px solid #b13e53; pointer-events:none; }
+#slot-lever { position:absolute; right:10px; top:26px; width:24px; height:110px; transform-origin:50% 100%; }
+#slot-stick { position:absolute; left:9px; top:10px; bottom:0; width:6px; background:#ccc; border:2px solid #000; }
+#slot-knob { position:absolute; left:0; top:0; width:24px; height:24px; border-radius:50%; background:#ef7d57; border:3px solid #000; }
+#slot-lever.pull { animation:pull .6s steps(6,end) 1; }
+@keyframes pull { 0%{transform:scaleY(1)} 40%{transform:scaleY(.35)} 100%{transform:scaleY(1)} }
+#slot-tray { background:#2b2b30; color:var(--accent); border:4px solid #000; border-top:0; padding:8px; font-size:10px; }
+
+/* ---- cat box ---- */
+#cat-box { position:relative; width:min(92vw,340px); cursor:pointer; touch-action:manipulation; user-select:none; border:4px solid #000; }
+#cat-svg { width:100%; display:block; }
+#cat-sign { position:absolute; left:50%; top:17%; width:84%; min-height:15%; display:flex; align-items:center; justify-content:center;
+  transform:translateX(-50%) scale(0); background:#f4f4f4; border:4px solid #000; color:#1a1c2c; padding:6px 10px; text-align:center;
+  font-family:'Marcellus', Optima, Candara, serif; font-variant:small-caps; line-height:1.15; word-break:break-word; }
+#cat-sign.up { transform:translateX(-50%) scale(1); transition:transform .35s steps(5,end); }
