@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choice Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#1a1c2c; --fg:#f4f4f4; --accent:#ffcd75; --blue:#3b5dc9; --dim:#566c86; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--fg);
+    font-family:'Press Start 2P', ui-monospace, monospace; font-size:12px; line-height:1.8; }
+  main { max-width:480px; margin:0 auto; padding:24px 16px 48px; text-align:center; }
+  h1 { font-size:18px; color:var(--accent); margin:8px 0 24px; }
+  .hidden { display:none !important; }
+  label { display:block; margin:16px 0 8px; }
+  input { font:inherit; color:var(--fg); background:#000; border:4px solid var(--fg);
+    padding:10px; width:100%; border-radius:0; outline:none; }
+  input:focus { border-color:var(--accent); }
+  input[type=number] { width:100px; text-align:center; }
+  #fields { display:grid; gap:10px; margin-top:16px; text-align:left; }
+  button { font:inherit; color:#000; background:var(--accent); border:4px solid var(--fg);
+    padding:12px 20px; margin-top:24px; cursor:pointer; border-radius:0;
+    box-shadow:4px 4px 0 #000; }
+  button:active { transform:translate(4px,4px); box-shadow:none; }
+  button.ghost { background:transparent; color:var(--fg); }
+  .err { color:#ef7d57; min-height:1.8em; margin-top:12px; }
+
+  #ball-wrap { position:relative; width:min(80vw,320px); aspect-ratio:1; margin:8px auto 0;
+    cursor:pointer; touch-action:manipulation; user-select:none; }
+  #ball { width:100%; height:100%; display:block; image-rendering:pixelated; }
+  #ball.shake { animation:shake .6s steps(2,end) 1; }
+  @keyframes shake {
+    0%{transform:translate(0,0)} 12%{transform:translate(-16px,6px) rotate(-6deg)}
+    25%{transform:translate(16px,-6px) rotate(6deg)} 38%{transform:translate(-16px,-6px) rotate(-6deg)}
+    50%{transform:translate(16px,6px) rotate(6deg)} 62%{transform:translate(-12px,4px) rotate(-4deg)}
+    75%{transform:translate(12px,-4px) rotate(4deg)} 88%{transform:translate(-6px,2px)}
+    100%{transform:translate(0,0)} }
+  #window { position:absolute; left:50%; top:50%; width:46%; aspect-ratio:1;
+    transform:translate(-50%,-50%); background:var(--blue); border:4px solid #000;
+    display:flex; align-items:center; justify-content:center; padding:6px;
+    clip-path:polygon(0 0,100% 0,100% 100%,0 100%); overflow:hidden; }
+  #answer { font-size:10px; line-height:1.5; word-break:break-word; text-align:center; color:#fff; }
+  #answer.long { font-size:8px; }
+  #answer.reveal { animation:fade .8s steps(4,end) 1; }
+  @keyframes fade { from{opacity:0} to{opacity:1} }
+  #hint { margin-top:24px; color:var(--dim); }
+  @media (prefers-reduced-motion: reduce) { #ball.shake { animation:none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>CHOICE MAKER</h1>
+
+  <section id="setup">
+    <label for="count">HOW MANY CHOICES?</label>
+    <input id="count" type="number" min="2" max="20" value="3" inputmode="numeric">
+    <div id="fields"></div>
+    <div class="err" id="err" role="alert"></div>
+    <button id="go">GO &gt;</button>
+  </section>
+
+  <section id="play" class="hidden">
+    <div id="ball-wrap" role="button" tabindex="0" aria-label="Shake the eight ball">
+      <svg id="ball" viewBox="0 0 32 32" shape-rendering="crispEdges"></svg>
+      <div id="window"><div id="answer">8</div></div>
+    </div>
+    <div id="hint">TAP THE BALL TO SHAKE</div>
+    <button id="shake">SHAKE!</button><br>
+    <button id="back" class="ghost">&lt; EDIT</button>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const MIN = 2, MAX = 20;
+  let choices = [];
+
+  // ---- pixel ball ----
+  (function drawBall() {
+    const N = 32, c = 15.5, r = 15.5;
+    let out = '';
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const d = Math.hypot(x - c, y - c);
+      if (d > r) continue;
+      let col = d > r - 1.5 ? '#000' : '#1a1c2c';
+      if (col !== '#000' && Math.hypot(x - 10, y - 9) < 3) col = '#566c86'; // highlight
+      out += `<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`;
+    }
+    $('ball').innerHTML = out;
+  })();
+
+  // ---- setup ----
+  function clampCount() {
+    let n = parseInt($('count').value, 10);
+    if (isNaN(n)) n = 0;
+    return Math.max(0, Math.min(MAX, n));
+  }
+  function renderFields() {
+    const n = clampCount();
+    const f = $('fields');
+    const old = [...f.querySelectorAll('input')].map(i => i.value);
+    f.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.maxLength = 40;
+      inp.placeholder = 'CHOICE ' + (i + 1);
+      inp.setAttribute('aria-label', 'Choice ' + (i + 1));
+      inp.value = old[i] || '';
+      f.appendChild(inp);
+    }
+  }
+  $('count').addEventListener('input', renderFields);
+
+  $('go').addEventListener('click', () => {
+    const n = parseInt($('count').value, 10);
+    if (!(n >= MIN && n <= MAX)) { $('err').textContent = `PICK ${MIN}-${MAX} CHOICES`; return; }
+    const vals = [...$('fields').querySelectorAll('input')].map(i => i.value.trim());
+    if (vals.some(v => !v)) { $('err').textContent = 'FILL IN EVERY CHOICE'; return; }
+    $('err').textContent = '';
+    choices = vals;
+    $('setup').classList.add('hidden');
+    $('play').classList.remove('hidden');
+    setAnswer('8', false);
+    $('hint').textContent = 'TAP THE BALL TO SHAKE';
+  });
+
+  $('back').addEventListener('click', () => {
+    $('play').classList.add('hidden');
+    $('setup').classList.remove('hidden');
+  });
+
+  // ---- uniform random (rejection sampling, no modulo bias) ----
+  function randInt(n) {
+    const max = Math.floor(0x100000000 / n) * n;
+    const buf = new Uint32Array(1);
+    do { crypto.getRandomValues(buf); } while (buf[0] >= max);
+    return buf[0] % n;
+  }
+
+  // ---- shake ----
+  let busy = false;
+  function setAnswer(text, animate) {
+    const a = $('answer');
+    a.textContent = text.toUpperCase();
+    a.classList.toggle('long', text.length > 12);
+    a.classList.remove('reveal');
+    if (animate) { void a.offsetWidth; a.classList.add('reveal'); }
+  }
+  function shake() {
+    if (busy) return;
+    busy = true;
+    const pick = choices[randInt(choices.length)];
+    setAnswer('', false);
+    $('hint').textContent = '...';
+    const ball = $('ball');
+    ball.classList.remove('shake'); void ball.offsetWidth; ball.classList.add('shake');
+    setTimeout(() => {
+      ball.classList.remove('shake');
+      setAnswer(pick, true);
+      $('hint').textContent = 'SHAKE AGAIN?';
+      busy = false;
+    }, 700);
+  }
+  $('ball-wrap').addEventListener('click', shake);
+  $('ball-wrap').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); shake(); }
+  });
+  $('shake').addEventListener('click', shake);
+
+  renderFields();
+})();
+</script>
+</body>
+</html>
