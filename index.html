@@ -178,28 +178,40 @@
   function hideTri() {
     clearInterval(spin);
     tri.classList.remove('on', 'bob');
-    tri.style.transform = '';
+    tri.style.cssText = '';
+    $('answer').style.opacity = 0;
   }
-  function showTri(text) {
+  // Triangle tumbles in the dark liquid during the shake, then rises to the glass.
+  function tumble(text, onDone) {
     const a = $('answer');
     a.textContent = text.toUpperCase();
     a.style.fontSize = fit(text) + 'px';
+    a.style.opacity = 0;
     tri.classList.add('on');
+    const steps = 17;
     let t = 0;
-    const steps = 9;
-    spin = setInterval(() => {
-      t++;
+    const frame = () => {
+      const p = t / steps;                       // 0 = deep, 1 = at the glass
+      const dark = p * p;
+      tri.style.opacity = (0.12 + 0.88 * dark).toFixed(2);
+      tri.style.filter = `brightness(${(0.25 + 0.75 * dark).toFixed(2)})`;
+      // text only becomes legible in the last few steps
+      a.style.opacity = p < 0.75 ? 0 : Math.min(1, (p - 0.75) / 0.2).toFixed(2);
       if (t >= steps) {
         clearInterval(spin);
-        const tilt = (randInt(25) - 12);
-        tri.style.transform = `rotate(${tilt}deg) scale(1)`;
+        tri.style.transform = `rotate(${randInt(25) - 12}deg) scale(1)`;
+        tri.style.opacity = 1; tri.style.filter = 'none'; a.style.opacity = 1;
         tri.classList.add('bob');
+        onDone();
         return;
       }
       const ang = randInt(360), flip = randInt(2) ? -1 : 1;
-      const sc = 0.5 + 0.5 * t / steps;
-      tri.style.transform = `rotate(${ang}deg) scaleX(${flip}) scale(${sc})`;
-    }, 90);
+      const sc = 0.45 + 0.55 * p;
+      tri.style.transform = `rotate(${ang}deg) scaleX(${flip}) scale(${sc.toFixed(2)})`;
+      t++;
+    };
+    frame();
+    spin = setInterval(frame, 100);
   }
   function shake() {
     if (busy) return;
@@ -209,12 +221,8 @@
     $('hint').textContent = '...';
     const ball = $('ball-wrap');
     ball.classList.remove('shake'); void ball.offsetWidth; ball.classList.add('shake');
-    setTimeout(() => {
-      ball.classList.remove('shake');
-      showTri(pick);
-      $('hint').textContent = 'SHAKE AGAIN?';
-      busy = false;
-    }, 700);
+    setTimeout(() => ball.classList.remove('shake'), 650);
+    tumble(pick, () => { $('hint').textContent = 'SHAKE AGAIN?'; busy = false; });
   }
   $('ball-wrap').addEventListener('click', shake);
   $('ball-wrap').addEventListener('keydown', e => {
