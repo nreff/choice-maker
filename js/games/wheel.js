@@ -4,6 +4,22 @@
   const COLORS = ['#ffcd75', '#73eff7', '#a7f070', '#ef7d57', '#b13e53', '#41a6f6', '#f4f4f4', '#b4b4ff'];
   const C = 160, R = 140;                       // svg is 320x320
   const DUR = 6000;                             // ms
+  const LABEL_END = R - 9, HUB = 28;            // labels end just inside the rim and may not reach the hub
+
+  // Largest font (<= 13px) whose text both fits along the radius and is narrower than the slice where it
+  // starts (the inner end is the tightest spot). Press Start 2P is monospace: width = chars * font size.
+  // Too long even at 6px: shorten with an ellipsis dot.
+  function fitLabel(text, sliceDeg) {
+    const half = sliceDeg * Math.PI / 360;
+    for (let len = text.length; len >= 1; len--) {
+      const t = len < text.length ? text.slice(0, len - 1) + '.' : text;
+      for (let fs = 13; fs >= 6; fs--) {
+        const inner = LABEL_END - t.length * fs;
+        if (inner >= HUB && fs <= 0.78 * 2 * inner * Math.sin(half)) return { t, fs };
+      }
+    }
+    return { t: '.', fs: 6 };
+  }
   let rot = 0, raf = 0, blink = null, wheel = null, ptr = null, slices = [], colors = [];
 
   const pt = (deg, r) => {
@@ -22,11 +38,10 @@
       const [x0, y0] = pt(i * s, R), [x1, y1] = pt((i + 1) * s, R);
       const large = s > 180 ? 1 : 0;
       out += `<path id="ws${i}" d="M${C} ${C} L${x0} ${y0} A${R} ${R} 0 ${large} 1 ${x1} ${y1} Z" fill="${COLORS[ci]}" stroke="#000" stroke-width="3"/>`;
-      let label = choices[i];
-      if (label.length > 16) label = label.slice(0, 15) + '.';
-      const fs = Math.max(6, Math.min(12, Math.floor(96 / label.length), Math.floor(362 / n)));
+      // Labels hang from the rim and read inward, where a slice is widest.
+      const { t: label, fs } = fitLabel(choices[i], s);
       const mid = (i + 0.5) * s;
-      out += `<text transform="translate(${C} ${C}) rotate(${mid - 90})" x="${R * 0.2}" y="${fs * 0.35}" font-size="${fs}" fill="#000" font-family="'Press Start 2P',monospace" pointer-events="none">${esc(label)}</text>`;
+      out += `<text transform="translate(${C} ${C}) rotate(${mid - 90})" x="${LABEL_END}" y="${(fs * 0.4).toFixed(1)}" text-anchor="end" font-size="${fs}" fill="#000" font-family="'Press Start 2P',monospace" pointer-events="none">${esc(label)}</text>`;
     }
     // pegs on the rim, one at every slice boundary
     for (let i = 0; i < n; i++) {
