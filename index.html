@@ -31,23 +31,31 @@
   #ball-wrap { position:relative; width:min(80vw,320px); aspect-ratio:1; margin:8px auto 0;
     cursor:pointer; touch-action:manipulation; user-select:none; }
   #ball { width:100%; height:100%; display:block; image-rendering:pixelated; }
-  #ball.shake { animation:shake .6s steps(2,end) 1; }
+  #ball-wrap.shake { animation:shake .6s steps(2,end) 1; }
   @keyframes shake {
     0%{transform:translate(0,0)} 12%{transform:translate(-16px,6px) rotate(-6deg)}
     25%{transform:translate(16px,-6px) rotate(6deg)} 38%{transform:translate(-16px,-6px) rotate(-6deg)}
     50%{transform:translate(16px,6px) rotate(6deg)} 62%{transform:translate(-12px,4px) rotate(-4deg)}
     75%{transform:translate(12px,-4px) rotate(4deg)} 88%{transform:translate(-6px,2px)}
     100%{transform:translate(0,0)} }
-  #window { position:absolute; left:50%; top:50%; width:46%; aspect-ratio:1;
-    transform:translate(-50%,-50%); background:var(--blue); border:4px solid #000;
-    display:flex; align-items:center; justify-content:center; padding:6px;
-    clip-path:polygon(0 0,100% 0,100% 100%,0 100%); overflow:hidden; }
-  #answer { font-size:10px; line-height:1.5; word-break:break-word; text-align:center; color:#fff; }
-  #answer.long { font-size:8px; }
-  #answer.reveal { animation:fade .8s steps(4,end) 1; }
-  @keyframes fade { from{opacity:0} to{opacity:1} }
+  #ball-wrap { width:min(90vw,380px); }
+  #window { position:absolute; left:50%; top:46%; width:46%; aspect-ratio:1; transform:translate(-50%,-50%); }
+  #win-svg { position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated; }
+  #tri-box { position:absolute; inset:7%; display:flex; align-items:center; justify-content:center;
+    overflow:hidden; border-radius:50%; clip-path:circle(50%); }
+  #tri { position:relative; width:74%; aspect-ratio:1/0.9; opacity:0; }
+  #tri.on { opacity:1; }
+  #tri.bob { animation:bob 1.6s steps(4,end) infinite alternate; }
+  @keyframes bob { from{translate:0 -3px} to{translate:0 3px} }
+  #tri-shape { position:absolute; inset:0; background:#a6d1ff;
+    clip-path:polygon(50% 0,100% 100%,0 100%); }
+  #tri-shape::after { content:""; position:absolute; inset:0; background:#7da2ff;
+    clip-path:polygon(50% 12%,90% 94%,10% 94%); }
+  #answer { position:absolute; left:50%; top:60%; width:56%; height:34%; transform:translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    color:#1a1c2c; font-size:8px; line-height:1.3; word-break:break-word; overflow:hidden; }
   #hint { margin-top:24px; color:var(--dim); }
-  @media (prefers-reduced-motion: reduce) { #ball.shake { animation:none; } }
+  @media (prefers-reduced-motion: reduce) { #ball-wrap.shake { animation:none; } }
 </style>
 </head>
 <body>
@@ -65,7 +73,7 @@
   <section id="play" class="hidden">
     <div id="ball-wrap" role="button" tabindex="0" aria-label="Shake the eight ball">
       <svg id="ball" viewBox="0 0 32 32" shape-rendering="crispEdges"></svg>
-      <div id="window"><div id="answer">8</div></div>
+      <div id="window"><svg id="win-svg" viewBox="0 0 20 20" shape-rendering="crispEdges"></svg><div id="tri-box"><div id="tri"><div id="tri-shape"></div><div id="answer"></div></div></div></div>
     </div>
     <div id="hint">TAP THE BALL TO SHAKE</div>
     <button id="shake">SHAKE!</button><br>
@@ -86,11 +94,23 @@
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const d = Math.hypot(x - c, y - c);
       if (d > r) continue;
-      let col = d > r - 1.5 ? '#000' : '#1a1c2c';
-      if (col !== '#000' && Math.hypot(x - 10, y - 9) < 3) col = '#566c86'; // highlight
+      let col = d > r - 1.5 ? '#000' : '#0d0d12';
+      if (col !== '#000' && Math.hypot(x - 9, y - 8) < 2.5) col = '#3a3f55'; // highlight
       out += `<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`;
     }
     $('ball').innerHTML = out;
+  })();
+
+  (function drawWindow() {
+    const N = 20, c = 9.5, r = 9.5;
+    let out = '';
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const d = Math.hypot(x - c, y - c);
+      if (d > r) continue;
+      const col = d > r - 1.3 ? '#566c86' : d > r - 2.3 ? '#000' : '#0b1d5e';
+      out += `<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`;
+    }
+    $('win-svg').innerHTML = out;
   })();
 
   // ---- setup ----
@@ -124,7 +144,7 @@
     choices = vals;
     $('setup').classList.add('hidden');
     $('play').classList.remove('hidden');
-    setAnswer('8', false);
+    hideTri();
     $('hint').textContent = 'TAP THE BALL TO SHAKE';
   });
 
@@ -143,24 +163,49 @@
 
   // ---- shake ----
   let busy = false;
-  function setAnswer(text, animate) {
+  const tri = $('tri');
+  let spin = null;
+  function fit(text) {
+    const n = text.length;
+    return n <= 3 ? 14 : n <= 6 ? 10 : n <= 10 ? 8 : n <= 16 ? 6 : 5;
+  }
+  function hideTri() {
+    clearInterval(spin);
+    tri.classList.remove('on', 'bob');
+    tri.style.transform = '';
+  }
+  function showTri(text) {
     const a = $('answer');
     a.textContent = text.toUpperCase();
-    a.classList.toggle('long', text.length > 12);
-    a.classList.remove('reveal');
-    if (animate) { void a.offsetWidth; a.classList.add('reveal'); }
+    a.style.fontSize = fit(text) + 'px';
+    tri.classList.add('on');
+    let t = 0;
+    const steps = 9;
+    spin = setInterval(() => {
+      t++;
+      if (t >= steps) {
+        clearInterval(spin);
+        const tilt = (randInt(25) - 12);
+        tri.style.transform = `rotate(${tilt}deg) scale(1)`;
+        tri.classList.add('bob');
+        return;
+      }
+      const ang = randInt(360), flip = randInt(2) ? -1 : 1;
+      const sc = 0.5 + 0.5 * t / steps;
+      tri.style.transform = `rotate(${ang}deg) scaleX(${flip}) scale(${sc})`;
+    }, 90);
   }
   function shake() {
     if (busy) return;
     busy = true;
     const pick = choices[randInt(choices.length)];
-    setAnswer('', false);
+    hideTri();
     $('hint').textContent = '...';
-    const ball = $('ball');
+    const ball = $('ball-wrap');
     ball.classList.remove('shake'); void ball.offsetWidth; ball.classList.add('shake');
     setTimeout(() => {
       ball.classList.remove('shake');
-      setAnswer(pick, true);
+      showTri(pick);
       $('hint').textContent = 'SHAKE AGAIN?';
       busy = false;
     }, 700);
