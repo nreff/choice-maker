@@ -1,4 +1,4 @@
-// Schrodinger's box: every choice sits in superposition (the bars wobble at equal height) until you observe it.
+// Schrödinger's box: every choice sits in superposition (the bars wobble at equal height) until you observe it.
 // The "wave function" then collapses onto the winner, the lid pops open and a cat holds up the answer.
 // The winner is decided first; the physics is purely theatrical.
 (() => {
@@ -29,8 +29,9 @@
       o += `<rect id="pb${i}" x="${20 + i * bw + 1}" y="100" width="${Math.max(2, bw - 2)}" height="30" fill="#73eff7"/>`;
     }
     o += `<rect x="18" y="131" width="${W - 36}" height="2" fill="#566c86"/>`;
-    o += `<text id="cat-eq" x="${W / 2}" y="26" text-anchor="middle" font-size="8" fill="#c9d3ff" font-family="'Press Start 2P',monospace">&#968; = 1/&#8730;${n} &#931; |choice&#10217;</text>`;
-    o += `<text id="cat-p" x="${W / 2}" y="46" text-anchor="middle" font-size="7" fill="#566c86" font-family="'Press Start 2P',monospace">P = 1/${n} EACH</text>`;
+    o += `<text x="${W / 2}" y="16" text-anchor="middle" font-size="9" fill="#ffcd75" font-family="'Press Start 2P',monospace">SCHR&#214;DINGER'S CAT</text>`;
+    o += `<text id="cat-eq" x="${W / 2}" y="36" text-anchor="middle" font-size="8" fill="#c9d3ff" font-family="'Press Start 2P',monospace">&#968; = 1/&#8730;${n} &#931; |choice&#10217;</text>`;
+    o += `<text id="cat-p" x="${W / 2}" y="54" text-anchor="middle" font-size="7" fill="#566c86" font-family="'Press Start 2P',monospace">P = 1/${n} EACH</text>`;
     // geiger LED
     o += `<rect x="14" y="152" width="40" height="22" fill="#3b3f5c" stroke="#000" stroke-width="2"/><circle id="cat-led" cx="26" cy="163" r="4" fill="#5a1f1f"/>` +
       `<text x="33" y="167" font-size="6" fill="#ffcd75" font-family="'Press Start 2P',monospace">GM</text>`;
@@ -58,7 +59,8 @@
   }
 
   CM.register({
-    id: 'catbox', name: 'CAT BOX', action: 'OBSERVE!', hint: 'TAP THE BOX TO OBSERVE THE CAT',
+    id: 'catbox', name: 'SCHRÖDINGER', action: 'OBSERVE!',
+    hint: "THE CAT IS EVERY CHOICE UNTIL YOU OBSERVE IT. TAP THE BOX.",
     mount(stage, ctx) {
       n = ctx.choices.length;
       stage.innerHTML = `<div id="cat-box" role="button" tabindex="0" aria-label="Open the box"><svg id="cat-svg" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">${build()}</svg>
@@ -99,10 +101,10 @@
           CM.audio.beep(880, 0.15);
           bars.forEach((b, i) => {
             b.setAttribute('fill', i === idx ? '#ffcd75' : '#3b3f5c');
-            b.setAttribute('height', i === idx ? 110 : 2); b.setAttribute('y', i === idx ? 21 : 129);
+            b.setAttribute('height', i === idx ? 70 : 2); b.setAttribute('y', i === idx ? 61 : 129);
           });
           timers.push(setTimeout(() => {
-            $('cat-p').textContent = `P = 1 (${choices[idx].toUpperCase().slice(0, 14)})`;
+            $('cat-p').textContent = 'CAT STATUS: ALIVE. PROBABLY.';
             $('cat-lid').setAttribute('transform', 'translate(76 200) rotate(-105)');
             $('cat-q').setAttribute('opacity', '0');
             CM.audio.thud(0.8);

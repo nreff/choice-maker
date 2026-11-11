@@ -4,7 +4,7 @@ A minimalist 8-bit magic eight-ball that makes your decisions. Enter your choice
 
 Static site, no build step. Open `index.html` locally, or host on GitHub Pages.
 
-Enter your choices, then pick an object to decide: **8-BALL**, **WHEEL**, **DICE** (a D4/D6/D8/D12/D20 that fits your number of choices, with ROLL AGAIN faces for any spares) **MAGIC COIN** (works for any number of choices), **PLINKO**, **MARBLES** (a race), **SLOTS**, or **CAT BOX** (Schrödinger's box). The winner is drawn uniformly at random first; each animation is then steered to land on it, so every choice is equally likely whichever object you use.
+Enter your choices, then pick an object to decide: **8-BALL**, **WHEEL**, **DICE** (a D4/D6/D8/D12/D20 that fits your number of choices, with ROLL AGAIN faces for any spares) **MAGIC COIN** (works for any number of choices), **PLINKO**, **MARBLES** (numbered marbles pour into a bumper-and-spinner arena and funnel down to a winner), **SLOTS**, or **SCHRÖDINGER** (Schrödinger's cat: every choice at once until observed). The winner is drawn uniformly at random first; each animation is then steered to land on it, so every choice is equally likely whichever object you use.
 
 ## Deploy to GitHub Pages
 
