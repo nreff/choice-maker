@@ -1,3 +1,4 @@
+// Choice Maker: Schrödinger box object.
 // Schrödinger's box: every choice sits in superposition (the bars wobble at equal height) until you observe it.
 // The "wave function" then collapses onto the winner, the lid pops open and a cat holds up the answer.
 // The winner is decided first; the physics is purely theatrical.
